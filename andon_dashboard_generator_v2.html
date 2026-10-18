@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Andon Dashboard Generator v2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0f1a;--bg2:#111827;--card:rgba(17,24,39,0.95);--border:rgba(255,255,255,0.08);
+  --cyan:#06b6d4;--blue:#3b82f6;--purple:#8b5cf6;--green:#10b981;--yellow:#f59e0b;
+  --red:#ef4444;--orange:#f97316;--pink:#ec4899;
+  --text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--gold:#ffd700;--silver:#c0c0c0;--bronze:#cd7f32
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px}
+.wrap{max-width:940px;margin:0 auto}
+/* ── Header ── */
+.gen-header{text-align:center;margin-bottom:28px}
+.gen-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--cyan),var(--blue));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 14px}
+.gen-header h1{font-size:1.9rem;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gen-header p{color:var(--muted);margin-top:6px;font-size:.92rem}
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px}
+.section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* ── Grid ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+/* ── Fields ── */
+.field{margin-bottom:13px}
+label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input,select{width:100%;background:#1e293b;border:1px solid var(--border);color:var(--text);padding:9px 13px;border-radius:8px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--cyan)}
+/* ── Upload zones ── */
+.upload-zone{border:2px dashed var(--border);border-radius:11px;padding:24px;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--cyan);background:rgba(6,182,212,.04)}
+.upload-zone.done{border-color:var(--green);background:rgba(16,185,129,.05)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:1.8rem;margin-bottom:6px}
+.upload-text{font-size:.87rem;color:var(--muted)}
+.upload-hint{font-size:.75rem;color:var(--dim);margin-top:3px}
+.upload-done{font-size:.83rem;color:var(--green);font-weight:600;margin-top:5px;display:none}
+.upload-zone.done .upload-done{display:block}
+.upload-zone.done .upload-text,.upload-zone.done .upload-hint{display:none}
+/* ── Buttons ── */
+.btn{padding:13px 24px;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#fff;width:100%}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(6,182,212,.3)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.btn-secondary{background:#1e293b;border:1px solid var(--border);color:var(--text);flex:1}
+.btn-secondary:hover{background:#263045}
+/* ── Progress ── */
+.progress{display:none;margin-top:16px}
+.progress-bar{height:5px;background:#1e293b;border-radius:3px;overflow:hidden;margin-top:7px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:3px;width:0;transition:width .35s ease}
+.progress-text{font-size:.82rem;color:var(--muted);text-align:center;margin-top:6px}
+/* ── Alert ── */
+.alert{padding:11px 15px;border-radius:8px;font-size:.86rem;margin-bottom:12px;display:flex;align-items:flex-start;gap:7px;line-height:1.5}
+.alert-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.alert-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.alert-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--yellow)}
+/* ── Output ── */
+.output-section{display:none;margin-top:18px}
+.out-buttons{display:flex;gap:10px;margin-bottom:14px}
+.code-wrap{position:relative}
+.code-box{background:#080d16;border:1px solid var(--border);border-radius:9px;padding:14px;font-family:'Courier New',monospace;font-size:.76rem;color:#7dd3fc;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.copy-top{position:absolute;top:9px;right:9px;background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;z-index:2}
+.copy-top:hover{background:var(--cyan)}
+.preview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.pv{background:#1e293b;border-radius:9px;padding:12px;text-align:center}
+.pv-val{font-size:1.6rem;font-weight:800}
+.pv-val.g{color:var(--green)}.pv-val.c{color:var(--cyan)}.pv-val.y{color:var(--yellow)}.pv-val.p{color:var(--purple)}
+.pv-lbl{font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-top:2px}
+/* ── Targets table ── */
+.targets-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.target-item{background:#1e293b;border-radius:8px;padding:10px 12px}
+.target-item label{font-size:.72rem;margin-bottom:4px}
+.target-item input{padding:6px 10px;font-size:.88rem}
+@media(max-width:640px){.grid2,.grid3,.preview-grid,.targets-grid{grid-template-columns:1fr}.out-buttons{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="gen-header">
+    <div class="gen-logo">⚡</div>
+    <h1>Andon Dashboard Generator</h1>
+    <p>Upload ASR, ART & QoS files — get a fully built weekly dashboard instantly</p>
+  </div>
+
+  <!-- STEP 1: WEEK SETTINGS -->
+  <div class="card">
+    <div class="section-title">📅 Step 1 — Week Settings</div>
+    <div class="grid3">
+      <div class="field"><label>Week Number</label><input type="number" id="weekNum" value="14" min="1" max="52"></div>
+      <div class="field"><label>Year</label><input type="number" id="weekYear" value="2026"></div>
+      <div class="field"><label>Previous Week Label</label><input type="text" id="prevWeekLabel" value="Week 13" placeholder="e.g. Week 13"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Prev Week Team ASR % (for trend)</label><input type="text" id="prevASR" value="98.21" placeholder="e.g. 98.21"></div>
+      <div class="field"><label>Prev Week Team ART (min, for trend)</label><input type="text" id="prevART" value="13.73" placeholder="e.g. 13.73"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: TARGETS -->
+  <div class="card">
+    <div class="section-title">🎯 Step 2 — Metric Targets</div>
+    <div class="targets-grid">
+      <div class="target-item"><label>ASR Target (%)</label><input type="number" id="tASR" value="98" step="0.1"></div>
+      <div class="target-item"><label>ART Target (min, lower=better)</label><input type="number" id="tART" value="12.5" step="0.1"></div>
+      <div class="target-item"><label>FCP Target (%)</label><input type="number" id="tFCP" value="95" step="0.1"></div>
+      <div class="target-item"><label>OA Target (%)</label><input type="number" id="tOA" value="95" step="0.1"></div>
+      <div class="target-item"><label>IR Target (%)</label><input type="number" id="tIR" value="95" step="0.1"></div>
+      <div class="target-item"><label>AA Target (%)</label><input type="number" id="tAA" value="95" step="0.1"></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: UPLOADS -->
+  <div class="card">
+    <div class="section-title">📂 Step 3 — Upload CSV Files</div>
+    <div class="grid3">
+      <div>
+        <label style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">ASR File</label>
+        <div class="upload-zone" id="zone-asr">
+          <input type="file" accept=".csv" onchange="handleUpload('asr',this)">
+          <div class="upload-icon">📊</div>
+          <div class="upload-text">Click or drag ASR CSV</div>
+          <div class="upload-hint">wk_XX_asr.csv</div>
+          <div class="upload-done" id="done-asr">✅ ASR loaded</div>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">ART File</label>
+        <div class="upload-zone" id="zone-art">
+          <input type="file" accept=".csv" onchange="handleUpload('art',this)">
+          <div class="upload-icon">⏱️</div>
+          <div class="upload-text">Click or drag ART CSV</div>
+          <div class="upload-hint">wkXX_art.csv</div>
+          <div class="upload-done" id="done-art">✅ ART loaded</div>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">QoS File</label>
+        <div class="upload-zone" id="zone-qos">
+          <input type="file" accept=".csv" onchange="handleUpload('qos',this)">
+          <div class="upload-icon">✅</div>
+          <div class="upload-text">Click or drag QoS CSV</div>
+          <div class="upload-hint">wk_XX_qos.csv</div>
+          <div class="upload-done" id="done-qos">✅ QoS loaded</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: GENERATE -->
+  <div class="card">
+    <div class="section-title">⚙️ Step 4 — Generate</div>
+    <div id="status-msg"></div>
+    <button class="btn btn-primary" id="genBtn" onclick="generate()" disabled>⚡ Generate Dashboard</button>
+    <div class="progress" id="progDiv">
+      <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+      <div class="progress-text" id="progText">Processing…</div>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-section" id="outSection">
+    <div class="card">
+      <div class="section-title">✅ Dashboard Ready</div>
+      <div id="outAlert"></div>
+      <div class="preview-grid" id="prevInfo"></div>
+      <div class="out-buttons">
+        <button class="btn btn-primary" style="flex:1" onclick="download()">⬇️ Download HTML</button>
+        <button class="btn btn-secondary" onclick="copyCode()">📋 Copy Code</button>
+      </div>
+      <div class="code-wrap">
+        <button class="copy-top" onclick="copyCode()">Copy</button>
+        <div class="code-box" id="codeBox"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   STATE & HELPERS
+════════════════════════════════════════════════════════════ */
+const raw = {asr:null,art:null,qos:null};
+let finalHTML = '';
+
+function handleUpload(type,input){
+  const f=input.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    raw[type]=e.target.result;
+    document.getElementById('zone-'+type).classList.add('done');
+    document.getElementById('done-'+type).textContent='✅ '+f.name;
+    checkReady();
+  };
+  r.readAsText(f);
+}
+function checkReady(){
+  const ok=raw.asr&&raw.art&&raw.qos;
+  document.getElementById('genBtn').disabled=!ok;
+  if(ok) showMsg('All 3 files loaded — ready to generate!','ok');
+}
+function showMsg(m,t){document.getElementById('status-msg').innerHTML=`<div class="alert alert-${t}" style="margin-bottom:12px">${m}</div>`}
+function setP(p,t){document.getElementById('progFill').style.width=p+'%';document.getElementById('progText').textContent=t}
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+function pct(v){if(!v||v==='#DIV/0!'||v==='')return null;return parseFloat(String(v).replace('%','').trim())}
+function num(v){if(!v||v==='')return null;return parseFloat(String(v).trim())}
+function clean(v){return v===undefined||v===null?'':String(v).replace(/\r/g,'').trim()}
+function fP(v){return v!=null?v.toFixed(2)+'%':'N/A'}
+function fN(v){return v!=null?v.toFixed(2):'N/A'}
+function ini(name){const n=name.replace(/[^a-zA-Z]/g,'');return(n[0]+(n[n.length-1]||'')).toUpperCase()}
+
+/* ════════════════════════════════════════════════════════════
+   PARSERS
+════════════════════════════════════════════════════════════ */
+function parseASR(csv){
+  /* Structure (no header, 0-indexed columns):
+     Row 0: "ASR Performance L4W Trend" (title)
+     Row 1: blank, "2026 Week 10", …, "2026 Week 13", "Grand Total"
+     Row 2: blank, "Helpful","Not_Helpful","ASR%", … (sub-headers)
+     Row 3+: advisor_login, w10h, w10nh, w10asr, w11h, w11nh, w11asr,
+              w12h, w12nh, w12asr, w13h, w13nh, w13asr, gth, gtnh, gtasr
+     Last row: Grand Total
+  */
+  const lines=csv.split('\n').map(l=>l.trim()).filter(l=>l);
+  const advisors=[];
+  let gt=null;
+  for(let i=3;i<lines.length;i++){
+    const c=lines[i].split(',');
+    const name=clean(c[0]);
+    if(!name)continue;
+    if(name.toLowerCase()==='grand total'){
+      gt={w10h:clean(c[1]),w10nh:clean(c[2]),w10asr:clean(c[3]),
+          w11h:clean(c[4]),w11nh:clean(c[5]),w11asr:clean(c[6]),
+          w12h:clean(c[7]),w12nh:clean(c[8]),w12asr:clean(c[9]),
+          w13h:clean(c[10]),w13nh:clean(c[11]),w13asr:clean(c[12]),
+          gth:clean(c[13]),gtnh:clean(c[14]),gtasr:clean(c[15])};
+      continue;
+    }
+    advisors.push({
+      login:name,
+      w10h:clean(c[1]),w10nh:clean(c[2]),w10asr:clean(c[3]),
+      w11h:clean(c[4]),w11nh:clean(c[5]),w11asr:clean(c[6]),
+      w12h:clean(c[7]),w12nh:clean(c[8]),w12asr:clean(c[9]),
+      w13h:clean(c[10]),w13nh:clean(c[11]),w13asr:clean(c[12]),
+      gth:clean(c[13]),gtnh:clean(c[14]),gtasr:clean(c[15])
+    });
+  }
+  advisors._gt=gt;
+  return advisors;
+}
+
+function parseART(csv){
+  /* Structure (no header, 0-indexed):
+     Row 0: "ART Performance L4W Trend"
+     Row 1: blank
+     Row 2: blank, "2026 Week 10", blank, "2026 Week11", blank, …, "Grand Total"
+     Row 3: blank (sub), blank (sub)
+     Row 3+: advisor_login, w10cases, w10art, w11cases, w11art, w12cases, w12art,
+              w13cases, w13art, gtcases, gtart
+     Last: Grand Total
+  */
+  const lines=csv.split('\n').map(l=>l.trim()).filter(l=>l);
+  const map={};
+  let gt=null;
+  // find data start (first row where col0 is not blank/title/Week)
+  for(let i=0;i<lines.length;i++){
+    const c=lines[i].split(',');
+    const name=clean(c[0]);
+    if(!name||name.startsWith('ART')||name.startsWith('2026')||name.startsWith('Advisor')||name==='')continue;
+    if(name.toLowerCase()==='grand total'){
+      gt={w10c:clean(c[1]),w10art:clean(c[2]),
+          w11c:clean(c[3]),w11art:clean(c[4]),
+          w12c:clean(c[5]),w12art:clean(c[6]),
+          w13c:clean(c[7]),w13art:clean(c[8]),
+          gtc:clean(c[9]),gtart:clean(c[10])};
+      continue;
+    }
+    map[name]={
+      w10c:clean(c[1]),w10art:clean(c[2]),
+      w11c:clean(c[3]),w11art:clean(c[4]),
+      w12c:clean(c[5]),w12art:clean(c[6]),
+      w13c:clean(c[7]),w13art:clean(c[8]),
+      gtc:clean(c[9]),gtart:clean(c[10])
+    };
+  }
+  map._gt=gt;
+  return map;
+}
+
+function parseQOS(csv){
+  /* Structure: CSV with header row
+     Row Labels, Audit Count, OA%, IR%, Categorization(=FCP), GAT Internal Comm(=AA), AA%, Overall Attr
+     Advisor rows: login@amazon.com → L4W totals
+     Sub-rows: "2026 Week X" → weekly breakdown
+  */
+  const lines=csv.split('\n').map(l=>l.trim()).filter(l=>l);
+  const map={};
+  let cur=null;
+  for(let i=1;i<lines.length;i++){  // skip header row
+    const c=lines[i].split(',');
+    const label=clean(c[0]);
+    if(!label)continue;
+    if(label.includes('@')){
+      const login=label.split('@')[0].trim();
+      cur=login;
+      map[login]={
+        auditCount:clean(c[1]),
+        oa:clean(c[2]),     // OA% = Outcome Accuracy
+        ir:clean(c[3]),     // IR% = Issue Resolution
+        fcp:clean(c[4]),    // Categorization = Followed Correct Process
+        aa:clean(c[6]),     // AA% = Andon Accuracy (col 6, not GAT comm col 5)
+        total:clean(c[7]),  // Overall Attr = composite total
+        weeks:{}
+      };
+    } else if(cur && label.startsWith('2026 Week')){
+      const wk=label.replace('2026 ','').trim(); // e.g. "Week 10"
+      map[cur].weeks[wk]={
+        oa:clean(c[2]),ir:clean(c[3]),fcp:clean(c[4]),aa:clean(c[6]),total:clean(c[7])
+      };
+    }
+  }
+  return map;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CLASSIFICATION
+   Excellent = ALL 6 metrics meet targets
+   Strong    = 4-5 metrics meet targets
+   Monitor   = 0-3 metrics meet targets
+════════════════════════════════════════════════════════════ */
+function classify(a, targets){
+  const {tASR,tART,tFCP,tOA,tIR,tAA}=targets;
+  const asrV=pct(a.asr.w13asr);
+  const artV=num(a.art?a.art.w13art:null);
+  const fcpV=pct(a.qos?a.qos.fcp:null);
+  const oaV =pct(a.qos?a.qos.oa:null);
+  const irV =pct(a.qos?a.qos.ir:null);
+  const aaV =pct(a.qos?a.qos.aa:null);
+
+  const asrMet = asrV!=null && asrV>=tASR;
+  const artMet = artV!=null && artV<tART;   // lower is better
+  const fcpMet = fcpV!=null && fcpV>=tFCP;
+  const oaMet  = oaV!=null  && oaV>=tOA;
+  const irMet  = irV!=null  && irV>=tIR;
+  const aaMet  = aaV!=null  && aaV>=tAA;
+
+  const met=[asrMet,artMet,fcpMet,oaMet,irMet,aaMet].filter(Boolean).length;
+  const total=6;
+  let status='monitor';
+  if(met===total) status='excellent';
+  else if(met>=4) status='strong';
+
+  return{status,met,total,asrV,artV,fcpV,oaV,irV,aaV,asrMet,artMet,fcpMet,oaMet,irMet,aaMet};
+}
+
+/* ════════════════════════════════════════════════════════════
+   COLOR HELPERS
+════════════════════════════════════════════════════════════ */
+function cASR(v,t){if(v==null)return'';if(v>=t)return'green';if(v>=t-2)return'yellow';return'red'}
+function cART(v,t){if(v==null)return'';if(v<t)return'green';if(v<t+2)return'yellow';return'red'}
+function cPct(v,t){if(v==null)return'';if(v>=t)return'green';if(v>=t-5)return'yellow';return'red'}
+function trendIcon(cur,prev){
+  if(cur==null||prev==null)return'<span class="tri neutral">→</span>';
+  if(cur>prev+0.5)return'<span class="tri up">▲</span>';
+  if(cur<prev-0.5)return'<span class="tri down">▼</span>';
+  return'<span class="tri neutral">→</span>';
+}
+function nhBadge(nh){
+  const n=parseInt(nh)||0;
+  if(n===0)return'<span class="nhb perfect">✅ 0</span>';
+  if(n===1)return'<span class="nhb minor">⚠️ 1</span>';
+  return`<span class="nhb concern">🔴 ${n}</span>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MAIN GENERATOR
+════════════════════════════════════════════════════════════ */
+async function generate(){
+  const weekNum=document.getElementById('weekNum').value;
+  const weekYear=document.getElementById('weekYear').value;
+  const prevWeekLabel=document.getElementById('prevWeekLabel').value;
+  const prevASRin=parseFloat(document.getElementById('prevASR').value)||0;
+  const prevARTin=parseFloat(document.getElementById('prevART').value)||0;
+  const targets={
+    tASR:parseFloat(document.getElementById('tASR').value)||98,
+    tART:parseFloat(document.getElementById('tART').value)||12.5,
+    tFCP:parseFloat(document.getElementById('tFCP').value)||95,
+    tOA:parseFloat(document.getElementById('tOA').value)||95,
+    tIR:parseFloat(document.getElementById('tIR').value)||95,
+    tAA:parseFloat(document.getElementById('tAA').value)||95,
+  };
+  const prevWk=parseInt(weekNum)-1;
+
+  document.getElementById('progDiv').style.display='block';
+  setP(10,'Parsing ASR…'); await delay(40);
+
+  let asrList,artMap,qosMap;
+  try{
+    asrList=parseASR(raw.asr);
+    setP(30,'Parsing ART…'); await delay(40);
+    artMap=parseART(raw.art);
+    setP(50,'Parsing QoS…'); await delay(40);
+    qosMap=parseQOS(raw.qos);
+  }catch(e){
+    showMsg('❌ Parse error: '+e.message,'err');
+    document.getElementById('progDiv').style.display='none';
+    return;
+  }
+
+  setP(65,'Classifying advisors…'); await delay(40);
+
+  // Build unified advisor list from ASR (source of truth for active advisors)
+  const advisors=asrList.filter(a=>a.login&&!a.login.toLowerCase().includes('grand')).map(a=>{
+    const art=artMap[a.login]||null;
+    const qos=qosMap[a.login]||null;
+    const clf=classify({asr:a,art,qos},targets);
+    return{...a,art,qos,clf};
+  });
+
+  // Sort: excellent→strong→monitor, within each group sort by met count desc then ART asc
+  const order={excellent:0,strong:1,monitor:2};
+  advisors.sort((a,b)=>{
+    const od=order[a.clf.status]-order[b.clf.status];
+    if(od!==0)return od;
+    const md=b.clf.met-a.clf.met;
+    if(md!==0)return md;
+    return(num(a.art?a.art.w13art:null)||99)-(num(b.art?b.art.w13art:null)||99);
+  });
+
+  setP(80,'Building HTML…'); await delay(40);
+
+  // ── Team stats ──
+  const gt=asrList._gt||{};
+  const gtART=artMap._gt||{};
+  const teamASR=pct(gt.w13asr)||0;
+  const teamART=num(gtART.w13art)||0;
+  const teamNH=parseInt(gt.w13nh)||0;
+  const teamHelp=parseInt(gt.w13h)||0;
+  const totalPolls=teamHelp+teamNH;
+
+  const excList=advisors.filter(a=>a.clf.status==='excellent');
+  const strList=advisors.filter(a=>a.clf.status==='strong');
+  const monList=advisors.filter(a=>a.clf.status==='monitor');
+
+  // Team QoS averages (from L4W data)
+  const avg=(key)=>{const v=advisors.map(a=>pct(a.qos?a.qos[key]:null)).filter(v=>v!=null);return v.length?(v.reduce((a,b)=>a+b)/v.length):0};
+  const teamOA=avg('oa'),teamIR=avg('ir'),teamFCP=avg('fcp'),teamAA=avg('aa'),teamTotal=avg('total');
+
+  // Health score (weighted)
+  const hsASR  = Math.min(teamASR/targets.tASR,1)*25;
+  const hsART  = teamART>0?Math.min(targets.tART/teamART,1)*20:0;
+  const hsQoS  = Math.min(teamTotal/95,1)*25;
+  const hsExc  = (excList.length/Math.max(advisors.length,1))*20;
+  const hsNH   = Math.max(0,1-teamNH/Math.max(totalPolls,1))*10;
+  const healthScore=Math.min(100,Math.round(hsASR+hsART+hsQoS+hsExc*100+hsNH));
+
+  const gaugeOffset=(408.41*(1-healthScore/100)).toFixed(2);
+  const asrChg=teamASR-prevASRin;
+  const artChg=teamART-prevARTin;
+  const asrChgStr=(asrChg>=0?'+':'')+asrChg.toFixed(2)+'%';
+  const artChgStr=(artChg>=0?'+':'')+Math.abs(artChg).toFixed(2);
+
+  // Champions
+  const champ=advisors[0];
+  const rank2=advisors[1];
+  const rank3=advisors[2];
+
+  // Recognition lists
+  const perfASR=advisors.filter(a=>pct(a.w13asr)===100);
+  const zeroNH=advisors.filter(a=>!a.w13nh||parseInt(a.w13nh)===0);
+  const top5ART=advisors.filter(a=>a.art&&num(a.art.w13art)).sort((a,b)=>num(a.art.w13art)-num(b.art.w13art)).slice(0,5);
+  const top5OA=advisors.filter(a=>a.qos&&pct(a.qos.oa)).sort((a,b)=>pct(b.qos.oa)-pct(a.qos.oa)).slice(0,5);
+  const belowOA=advisors.filter(a=>a.qos&&pct(a.qos.total)!=null&&pct(a.qos.total)<95);
+
+  // Trend bars helper
+  const wN=parseInt(weekNum);
+  const w10TASR=pct(gt.w10asr)||0,w11TASR=pct(gt.w11asr)||0,w12TASR=pct(gt.w12asr)||0;
+  const w10TART=num(gtART.w10art)||0,w11TART=num(gtART.w11art)||0,w12TART=num(gtART.w12art)||0;
+  const artMax=Math.max(w10TART,w11TART,w12TART,teamART,1);
+  function artBar(v,wk){const h=Math.max(8,(v/artMax)*100);const c=v<targets.tART?'tg':'ty';return`<div class="tbc"><div class="tbv" style="color:var(--accent-yellow)">${fN(v)}</div><div class="tbw"><div class="tb ${c}" style="height:${h}%"></div></div><div class="tbl">W${wk}</div></div>`}
+  function asrBar(v,wk){const h=Math.max(8,v);const c=v>=targets.tASR?'tg':'ty';return`<div class="tbc"><div class="tbv" style="color:var(--accent-${v>=targets.tASR?'green':'yellow'})">${fP(v)}</div><div class="tbw"><div class="tb ${c}" style="height:${h}%"></div></div><div class="tbl">W${wk}</div></div>`}
+
+  /* ── Leaderboard rows ── */
+  function lbRow(a,idx){
+    const rank=idx+1;
+    const rc=rank===1?'gold':rank===2?'silver':rank===3?'bronze':'';
+    const cl=a.clf;
+    const w12asr=pct(a.w12asr);
+    return`<div class="lb-row ${cl.status}" data-status="${cl.status}">
+  <div class="rc"><span class="rn ${rc}">${rank}</span></div>
+  <div class="ac"><div class="av ${cl.status}">${ini(a.login)}</div><span class="an">${a.login}</span></div>
+  <div class="mc"><span class="mv ${cART(cl.artV,targets.tART)}">${a.art?(a.art.w13art||'N/A'):'N/A'}</span></div>
+  <div class="mc"><span class="mv ${cASR(cl.asrV,targets.tASR)}">${a.w13asr||'N/A'}</span></div>
+  <div class="mc"><span class="mv ${cPct(cl.fcpV,targets.tFCP)}">${a.qos?(a.qos.fcp||'N/A'):'N/A'}</span></div>
+  <div class="mc"><span class="mv ${cPct(cl.oaV,targets.tOA)}">${a.qos?(a.qos.oa||'N/A'):'N/A'}</span></div>
+  <div class="mc"><span class="mv ${cPct(cl.irV,targets.tIR)}">${a.qos?(a.qos.ir||'N/A'):'N/A'}</span></div>
+  <div class="mc"><span class="mv ${cPct(cl.aaV,targets.tAA)}">${a.qos?(a.qos.aa||'N/A'):'N/A'}</span></div>
+  <div class="tc">${trendIcon(cl.asrV,w12asr)}</div>
+  <div><span class="sb ${cl.status}">${cl.status==='excellent'?'★ Excellent':cl.status==='strong'?'● Strong':'● Monitor'}</span></div>
+</div>`;}
+
+  /* ── Advisor spotlight cards ── */
+  function spotCard(a,idx){
+    const rank=idx+1;
+    const cl=a.clf;
+    const sc=cl.status==='excellent'?'ce':cl.status==='strong'?'cs':'cm';
+    const ac=cl.status==='excellent'?'ae':cl.status==='strong'?'as':'am';
+    const rk=cl.status==='excellent'?'re':cl.status==='strong'?'rs':'rm';
+    const bk=cl.status==='excellent'?'be':cl.status==='strong'?'bs':'bm';
+    const subtitle=rank===1?'🏆 Champion of the Week!':cl.status==='excellent'?'★ Excellent Performer':cl.status==='strong'?'● Strong Performance':'● Needs Attention';
+    const statusLabel=cl.status==='excellent'?'★ Excellent':cl.status==='strong'?'● Strong':'● Monitor';
+    const nhVal=parseInt(a.w13nh)||0;
+
+    // L4W bar data for sparklines in card
+    // ASR: W10,W11,W12,W13
+    const asrWks=[pct(a.w10asr),pct(a.w11asr),pct(a.w12asr),pct(a.w13asr)];
+    const artWks=[num(a.art?a.art.w10art:null),num(a.art?a.art.w11art:null),num(a.art?a.art.w12art:null),num(a.art?a.art.w13art:null)];
+    // QoS metrics are L4W totals only (no per-week breakdown needed for bar; use total as single bar)
+    const qosFCP=pct(a.qos?a.qos.fcp:null);
+    const qosOA=pct(a.qos?a.qos.oa:null);
+    const qosIR=pct(a.qos?a.qos.ir:null);
+    const qosAA=pct(a.qos?a.qos.aa:null);
+    const gtASR=pct(a.gtasr);
+    const gtART=num(a.art?a.art.gtart:null);
+
+    // Build ASR sparkline bars (W10-W13)
+    const asrSparkMax=100;
+    const asrSpark=asrWks.map((v,i)=>{
+      const h=v!=null?Math.max(8,v):8;
+      const c=v!=null&&v>=targets.tASR?'sbar-g':v!=null&&v>=targets.tASR-2?'sbar-y':'sbar-r';
+      return`<div class="sbar ${c}" style="height:${h}%" title="W${wN-3+i}: ${v!=null?v.toFixed(1)+'%':'N/A'}"></div>`;
+    }).join('');
+
+    // Build ART sparkline bars (W10-W13)
+    const artSparkMax=Math.max(...artWks.filter(v=>v!=null),targets.tART,1);
+    const artSpark=artWks.map((v,i)=>{
+      const h=v!=null?Math.max(8,(v/artSparkMax)*100):8;
+      const c=v!=null&&v<targets.tART?'sbar-g':v!=null&&v<targets.tART+2?'sbar-y':'sbar-r';
+      return`<div class="sbar ${c}" style="height:${h}%" title="W${wN-3+i}: ${v!=null?v.toFixed(2)+' min':'N/A'}"></div>`;
+    }).join('');
+
+    // QoS horizontal bars (L4W)
+    function qBar(val,target,label){
+      const bval=val!=null?val:0;
+      const c=val!=null&&val>=target?'#10b981':val!=null&&val>=target-5?'#f59e0b':'#ef4444';
+      const txt=val!=null?val.toFixed(1)+'%':'N/A';
+      return`<div class="qbar-row">
+        <div class="qbar-label">${label}</div>
+        <div class="qbar-track"><div class="qbar-fill" style="width:${bval}%;background:${c}"><span class="qbar-val">${txt}</span></div></div>
+        <div class="qbar-target" title="Target: ${target}%">T:${target}%</div>
+      </div>`;
+    }
+
+    // badges
+    const badges=[];
+    if(rank===1)badges.push('<span class="mb gold">🏆 Champion</span>');
+    if(cl.artV!=null&&cl.artV<targets.tART)badges.push('<span class="mb green">⚡ Fast ART</span>');
+    if(cl.oaV===100)badges.push('<span class="mb cyan">💎 Perfect OA</span>');
+    if(nhVal===0)badges.push('<span class="mb green">💚 Zero NH</span>');
+    if(cl.met===6)badges.push('<span class="mb purple">🔥 All 6 Met</span>');
+
+    // insight
+    const gaps=[];
+    if(!cl.asrMet&&cl.asrV!=null)gaps.push(`ASR ${fP(cl.asrV)}`);
+    if(!cl.artMet&&cl.artV!=null)gaps.push(`ART ${fN(cl.artV)}min`);
+    if(!cl.fcpMet&&cl.fcpV!=null)gaps.push(`FCP ${fP(cl.fcpV)}`);
+    if(!cl.oaMet&&cl.oaV!=null)gaps.push(`OA ${fP(cl.oaV)}`);
+    if(!cl.irMet&&cl.irV!=null)gaps.push(`IR ${fP(cl.irV)}`);
+    if(!cl.aaMet&&cl.aaV!=null)gaps.push(`AA ${fP(cl.aaV)}`);
+    const insight=cl.met===6?`All 6 metrics met this week — outstanding across ART, ASR, FCP, OA, IR & AA!`
+      :gaps.length?`${cl.met}/6 metrics met. Gaps: ${gaps.join(', ')}. ${nhVal>0?nhVal+' NH case'+( nhVal>1?'s':'')+' to review.':''}`
+      :`${cl.met}/6 metrics met. ${nhVal>0?nhVal+' NH case'+(nhVal>1?'s':'')+'.':''}`;
+
+    return`<div class="spot-card ${sc}">
+  <div class="sc-head">
+    <div class="sc-av ${ac}">${ini(a.login)}<span class="sc-rank ${rk}">#${rank}</span></div>
+    <div class="sc-info"><div class="sc-name">${a.login}</div><div class="sc-sub">${subtitle}</div></div>
+    <span class="sc-badge ${bk}">${statusLabel}</span>
+  </div>
+
+  <div class="sc-met-pills">
+    <span class="met-pill ${cl.asrMet?'mp-ok':'mp-no'}">ASR</span>
+    <span class="met-pill ${cl.artMet?'mp-ok':'mp-no'}">ART</span>
+    <span class="met-pill ${cl.fcpMet?'mp-ok':'mp-no'}">FCP</span>
+    <span class="met-pill ${cl.oaMet?'mp-ok':'mp-no'}">OA</span>
+    <span class="met-pill ${cl.irMet?'mp-ok':'mp-no'}">IR</span>
+    <span class="met-pill ${cl.aaMet?'mp-ok':'mp-no'}">AA</span>
+    <span class="met-pill mp-nh ${nhVal===0?'mp-ok':nhVal===1?'mp-warn':'mp-no'}">NH:${nhVal}</span>
+  </div>
+
+  <div class="sc-section-label">📊 L4W ASR Trend (W${wN-3}→W${wN})</div>
+  <div class="sc-kpi-row">
+    <div class="sc-kpi"><div class="sc-kv ${cASR(pct(a.w10asr),targets.tASR)}">${a.w10asr||'—'}</div><div class="sc-kl">W${wN-3}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cASR(pct(a.w11asr),targets.tASR)}">${a.w11asr||'—'}</div><div class="sc-kl">W${wN-2}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cASR(pct(a.w12asr),targets.tASR)}">${a.w12asr||'—'}</div><div class="sc-kl">W${wN-1}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cASR(pct(a.w13asr),targets.tASR)}">${a.w13asr||'—'}</div><div class="sc-kl">W${wN} ★</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cASR(gtASR,targets.tASR)}">${a.gtasr||'—'}</div><div class="sc-kl">L4W</div></div>
+  </div>
+  <div class="sc-spark">${asrSpark}</div>
+
+  <div class="sc-section-label">⏱️ L4W ART Trend (W${wN-3}→W${wN})</div>
+  <div class="sc-kpi-row">
+    <div class="sc-kpi"><div class="sc-kv ${cART(num(a.art?a.art.w10art:null),targets.tART)}">${a.art?(a.art.w10art||'—'):'—'}</div><div class="sc-kl">W${wN-3}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cART(num(a.art?a.art.w11art:null),targets.tART)}">${a.art?(a.art.w11art||'—'):'—'}</div><div class="sc-kl">W${wN-2}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cART(num(a.art?a.art.w12art:null),targets.tART)}">${a.art?(a.art.w12art||'—'):'—'}</div><div class="sc-kl">W${wN-1}</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cART(num(a.art?a.art.w13art:null),targets.tART)}">${a.art?(a.art.w13art||'—'):'—'}</div><div class="sc-kl">W${wN} ★</div></div>
+    <div class="sc-kpi"><div class="sc-kv ${cART(num(a.art?a.art.gtart:null),targets.tART)}">${a.art?(a.art.gtart||'—'):'—'}</div><div class="sc-kl">L4W</div></div>
+  </div>
+  <div class="sc-spark">${artSpark}</div>
+
+  <div class="sc-section-label">✅ L4W QoS Metrics</div>
+  ${qBar(qosFCP,targets.tFCP,'FCP%')}
+  ${qBar(qosOA,targets.tOA,'OA%')}
+  ${qBar(qosIR,targets.tIR,'IR%')}
+  ${qBar(qosAA,targets.tAA,'AA%')}
+
+  <div class="sc-section-label">📋 Not Helpful Votes (W${wN})</div>
+  <div class="nh-display ${nhVal===0?'nh-ok':nhVal<=2?'nh-warn':'nh-bad'}">${nhVal===0?'✅ Zero Not Helpful — Clean Week!':nhVal===1?'⚠️ 1 Not Helpful vote — review case':'🔴 '+nhVal+' Not Helpful votes — immediate review needed'}</div>
+
+  <div class="sc-badges">${badges.join('')}</div>
+  <div class="sc-insight"><div class="sc-insight-hd">💡 Insight</div>${insight}</div>
+</div>`;
+  }
+
+  // Leaderboard rows string
+  const lbRows=advisors.map((a,i)=>lbRow(a,i)).join('\n');
+  // Spotlight cards string
+  const spotCards=advisors.map((a,i)=>spotCard(a,i)).join('\n');
+
+  // Recognition rows
+  const recRow=(a,val,cls)=>`<div class="ri"><div class="ril"><div class="ra ${cls}">${ini(a.login)}</div><span>${a.login}</span></div><span class="rv ${cls}">${val}</span></div>`;
+  const perfASRRows=perfASR.slice(0,5).map(a=>recRow(a,'100%','green')).join('');
+  const top5ARTrows=top5ART.map(a=>recRow(a,a.art.w13art+' min','gold')).join('');
+  const top5OArows=top5OA.map(a=>recRow(a,a.qos.oa,'cyan')).join('');
+  const zeroNHrows=zeroNH.slice(0,5).map(a=>recRow(a,'0 NH','green')).join('');
+
+  // Action items
+  const highART=advisors.filter(a=>a.art&&num(a.art.w13art)>targets.tART+3).sort((a,b)=>num(b.art.w13art)-num(a.art.w13art)).slice(0,4);
+  const lowQoS=belowOA.sort((a,b)=>pct(a.qos.total)-pct(b.qos.total)).slice(0,4);
+  const topNH=advisors.filter(a=>parseInt(a.w13nh)>0).sort((a,b)=>parseInt(b.w13nh)-parseInt(a.w13nh)).slice(0,4);
+
+  setP(95,'Assembling final HTML…'); await delay(40);
+
+  /* ════════════════════ DASHBOARD HTML ════════════════════ */
+  finalHTML=`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Andon Performance Hub | Week ${weekNum} - ${weekYear}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-primary:#0a0f1a;--bg-secondary:#111827;--bg-card:rgba(17,24,39,0.9);--bg-glass:rgba(255,255,255,0.03);
+  --border-glass:rgba(255,255,255,0.08);
+  --accent-cyan:#06b6d4;--accent-blue:#3b82f6;--accent-purple:#8b5cf6;--accent-pink:#ec4899;
+  --accent-green:#10b981;--accent-yellow:#f59e0b;--accent-orange:#f97316;--accent-red:#ef4444;
+  --text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#64748b;
+  --gold:#ffd700;--silver:#c0c0c0;--bronze:#cd7f32
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;line-height:1.6}
+.dash{max-width:1700px;margin:0 auto;padding:18px}
+/* ── Header ── */
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:18px 26px;background:linear-gradient(135deg,var(--bg-secondary),var(--bg-card));border-radius:14px;margin-bottom:20px;border:1px solid var(--border-glass)}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.logo{width:46px;height:46px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.hdr-title h1{font-size:1.65rem;font-weight:800;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-title p{color:var(--text-secondary);font-size:.85rem}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.live-badge{display:flex;align-items:center;gap:7px;background:rgba(16,185,129,.2);color:var(--accent-green);padding:7px 14px;border-radius:18px;font-weight:600;font-size:.82rem}
+.live-dot{width:7px;height:7px;background:var(--accent-green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.2)}}
+.wk-badge{background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple));color:#fff;padding:7px 18px;border-radius:18px;font-weight:600;font-size:.88rem}
+/* ── Cards ── */
+.card{background:var(--bg-card);border-radius:14px;padding:20px;border:1px solid var(--border-glass);transition:transform .3s,box-shadow .3s}
+.card:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(0,0,0,.3)}
+.section{margin-bottom:20px}
+/* ── Team Pulse ── */
+.pulse-grid{display:grid;grid-template-columns:260px 1fr 330px;gap:18px;margin-bottom:20px}
+.health-card{text-align:center;padding:26px}
+.hc-title{display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;margin-bottom:18px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.9px;font-size:.8rem}
+.gauge-c{position:relative;width:170px;height:170px;margin:0 auto}
+.gauge-svg{transform:rotate(-90deg);width:170px;height:170px}
+.g-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:11}
+.g-fill{fill:none;stroke:url(#gGrad);stroke-width:11;stroke-linecap:round;stroke-dasharray:408.41;stroke-dashoffset:408.41;transition:stroke-dashoffset 2.5s ease-out}
+.g-fill.anim{stroke-dashoffset:${gaugeOffset}}
+.gauge-ctr{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.g-val{font-size:3.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.g-lbl{color:var(--text-secondary);font-size:.8rem}
+/* ── Quick Stats ── */
+.qs-card{padding:18px}
+.qs-title{display:flex;align-items:center;gap:7px;font-weight:700;margin-bottom:14px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.9px;font-size:.8rem}
+.qs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.qs-item{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:10px;padding:16px 12px;text-align:center}
+.qs-val{font-size:1.9rem;font-weight:800}
+.qs-val.ex{color:var(--accent-green)}.qs-val.st{color:var(--accent-cyan)}.qs-val.mo{color:var(--accent-yellow)}.qs-val.ar{color:var(--accent-purple)}
+.qs-lbl{font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi-mini{background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:9px;padding:10px;text-align:center}
+.km-val{font-size:1.2rem;font-weight:700}
+.km-val.g{color:var(--accent-green)}.km-val.c{color:var(--accent-cyan)}.km-val.y{color:var(--accent-yellow)}.km-val.p{color:var(--accent-purple)}
+.km-lbl{font-size:.67rem;color:var(--text-muted);text-transform:uppercase}
+/* ── Highlights ── */
+.hl-card{padding:18px}
+.hl-title{display:flex;align-items:center;gap:7px;font-weight:700;margin-bottom:14px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.9px;font-size:.8rem}
+.hl-item{padding:10px 14px;margin-bottom:7px;border-radius:9px;border-left:4px solid;background:var(--bg-glass);font-size:.87rem}
+.hl-item.gold{border-left-color:var(--gold)}.hl-item.green{border-left-color:var(--accent-green)}.hl-item.cyan{border-left-color:var(--accent-cyan)}.hl-item.yellow{border-left-color:var(--accent-yellow)}.hl-item.blue{border-left-color:var(--accent-blue)}
+/* ── Champion ── */
+.champ-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.champ-card{background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,165,0,.05));border:2px solid var(--gold);border-radius:18px;padding:26px;position:relative;overflow:hidden}
+.champ-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,215,0,.08) 0%,transparent 70%);animation:shimmer 3s infinite}
+@keyframes shimmer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(180deg)}}
+.ch-head{display:flex;align-items:center;gap:16px;position:relative;z-index:1}
+.ch-av{width:80px;height:80px;background:linear-gradient(135deg,var(--gold),var(--accent-orange));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:var(--bg-primary);position:relative;box-shadow:0 0 28px rgba(255,215,0,.4);flex-shrink:0}
+.ch-crown{position:absolute;top:-18px;font-size:1.8rem;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.ch-info h3{font-size:1.65rem;font-weight:800;color:var(--gold)}
+.ch-sub{color:var(--text-secondary);font-size:.9rem;margin-top:3px}
+.ch-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;position:relative;z-index:1}
+.ch-stat{background:rgba(255,215,0,.15);border-radius:10px;padding:12px;text-align:center}
+.ch-stat-val{font-size:1.3rem;font-weight:800;color:var(--gold)}
+.ch-stat-lbl{font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;margin-top:3px}
+.ch-badges{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:1}
+.ch-badge{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,.2);border:1px solid rgba(255,215,0,.3);padding:5px 12px;border-radius:18px;font-size:.77rem;font-weight:600;color:var(--gold)}
+/* ── Podium ── */
+.podium-card{padding:26px}
+.pod-title{display:flex;align-items:center;gap:9px;font-size:1.1rem;font-weight:700;margin-bottom:24px}
+.pod-c{display:flex;justify-content:center;align-items:flex-end;gap:14px;height:260px}
+.pod-place{display:flex;flex-direction:column;align-items:center;gap:10px}
+.pod-av{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem}
+.pod-av.f{background:linear-gradient(135deg,var(--gold),var(--accent-orange));color:var(--bg-primary);box-shadow:0 0 22px rgba(255,215,0,.5)}
+.pod-av.s{background:linear-gradient(135deg,var(--silver),#a8a8a8);color:var(--bg-primary)}
+.pod-av.t{background:linear-gradient(135deg,var(--bronze),#a0522d);color:var(--bg-primary)}
+.pod-name{font-weight:700;font-size:.87rem;text-align:center}
+.pod-stats{font-size:.72rem;color:var(--text-secondary);text-align:center;line-height:1.4}
+.pod-stand{border-radius:7px 7px 0 0;display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:800;min-width:90px}
+.pod-stand.f{height:130px;background:linear-gradient(180deg,var(--gold),#b8860b);color:var(--bg-primary)}
+.pod-stand.s{height:100px;background:linear-gradient(180deg,var(--silver),#808080);color:var(--bg-primary)}
+.pod-stand.t{height:72px;background:linear-gradient(180deg,var(--bronze),#8b4513);color:var(--bg-primary)}
+/* ── KPI Cards ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{padding:18px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.kpi-card.kc-g::before{background:var(--accent-green)}.kpi-card.kc-c::before{background:var(--accent-cyan)}.kpi-card.kc-p::before{background:var(--accent-purple)}.kpi-card.kc-y::before{background:var(--accent-yellow)}.kpi-card.kc-o::before{background:var(--accent-orange)}.kpi-card.kc-pk::before{background:var(--accent-pink)}
+.kpi-icon{font-size:1.3rem;margin-bottom:8px}
+.kpi-title{font-size:.72rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;margin-bottom:8px}
+.kpi-val{font-size:1.9rem;font-weight:800;margin-bottom:6px}
+.kpi-val.g{color:var(--accent-green)}.kpi-val.c{color:var(--accent-cyan)}.kpi-val.p{color:var(--accent-purple)}.kpi-val.y{color:var(--accent-yellow)}.kpi-val.o{color:var(--accent-orange)}.kpi-val.pk{color:var(--accent-pink)}
+.kpi-chg{font-size:.78rem;display:flex;align-items:center;gap:5px}
+.kpi-chg.up{color:var(--accent-green)}.kpi-chg.down{color:var(--accent-red)}.kpi-chg.neu{color:var(--text-secondary)}
+.kpi-target{font-size:.7rem;color:var(--text-muted);margin-top:4px}
+/* ── Leaderboard ── */
+.lb-card{padding:0;overflow:hidden}
+.lb-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border-glass);flex-wrap:wrap;gap:8px}
+.lb-title{display:flex;align-items:center;gap:9px;font-size:1.1rem;font-weight:700}
+.ftabs{display:flex;gap:7px;flex-wrap:wrap}
+.ftab{padding:7px 14px;border-radius:18px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .25s;background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary)}
+.ftab:hover{background:rgba(255,255,255,.08)}.ftab.active{background:var(--accent-blue);border-color:var(--accent-blue);color:#fff}
+.lb-table{width:100%;overflow-x:auto}
+/* 10 cols: rank, advisor, ART, ASR, FCP, OA, IR, AA, trend, status */
+.lb-hdr,.lb-row{display:grid;grid-template-columns:50px 160px repeat(6,1fr) 60px 120px;padding:12px 22px;align-items:center;min-width:1060px}
+.lb-hdr{background:var(--bg-glass);font-size:.69rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.9px}
+.lb-row{border-bottom:1px solid var(--border-glass);transition:background .2s}
+.lb-row:hover{background:rgba(255,255,255,.03)}
+.lb-row.excellent{border-left:3px solid var(--accent-green)}.lb-row.strong{border-left:3px solid var(--accent-cyan)}.lb-row.monitor{border-left:3px solid var(--accent-yellow)}
+.rc{display:flex;align-items:center}
+.rn{font-weight:800;font-size:1.05rem}
+.rn.gold{color:var(--gold)}.rn.silver{color:var(--silver)}.rn.bronze{color:var(--bronze)}
+.ac{display:flex;align-items:center;gap:8px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.67rem;flex-shrink:0}
+.av.excellent{background:linear-gradient(135deg,var(--accent-green),#059669);color:#fff}
+.av.strong{background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));color:#fff}
+.av.monitor{background:linear-gradient(135deg,var(--accent-yellow),var(--accent-orange));color:var(--bg-primary)}
+.an{font-weight:600;font-size:.83rem}
+.mc{text-align:center}
+.mv{font-weight:700;font-size:.88rem}
+.mv.green{color:var(--accent-green)}.mv.yellow{color:var(--accent-yellow)}.mv.red{color:var(--accent-red)}.mv.cyan{color:var(--accent-cyan)}
+.tc{display:flex;justify-content:center}
+.tri{font-size:1.1rem}.tri.up{color:var(--accent-green)}.tri.down{color:var(--accent-red)}.tri.neutral{color:var(--text-muted)}
+.sb{padding:5px 12px;border-radius:18px;font-size:.67rem;font-weight:700;text-transform:uppercase;white-space:nowrap}
+.sb.excellent{background:rgba(16,185,129,.2);color:var(--accent-green);border:1px solid var(--accent-green)}
+.sb.strong{background:rgba(6,182,212,.2);color:var(--accent-cyan);border:1px solid var(--accent-cyan)}
+.sb.monitor{background:rgba(245,158,11,.2);color:var(--accent-yellow);border:1px solid var(--accent-yellow)}
+/* ── Spotlight cards ── */
+.spot-title{display:flex;align-items:center;gap:9px;font-size:1.1rem;font-weight:700;margin-bottom:18px}
+.spot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:20px}
+.spot-card{border-radius:14px;padding:18px;transition:transform .3s,box-shadow .3s}
+.spot-card:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(0,0,0,.3)}
+.spot-card.ce{background:linear-gradient(135deg,rgba(16,185,129,.12),var(--bg-card));border:1px solid rgba(16,185,129,.3)}
+.spot-card.cs{background:linear-gradient(135deg,rgba(6,182,212,.12),var(--bg-card));border:1px solid rgba(6,182,212,.3)}
+.spot-card.cm{background:linear-gradient(135deg,rgba(245,158,11,.12),var(--bg-card));border:1px solid rgba(245,158,11,.3)}
+.sc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.sc-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;position:relative;flex-shrink:0}
+.sc-av.ae{background:linear-gradient(135deg,var(--accent-green),#059669);color:#fff}
+.sc-av.as{background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));color:#fff}
+.sc-av.am{background:linear-gradient(135deg,var(--accent-yellow),var(--accent-orange));color:var(--bg-primary)}
+.sc-rank{position:absolute;bottom:-4px;right:-4px;background:var(--bg-primary);font-size:.6rem;font-weight:700;padding:2px 5px;border-radius:7px;border:2px solid}
+.sc-rank.re{border-color:var(--accent-green)}.sc-rank.rs{border-color:var(--accent-cyan)}.sc-rank.rm{border-color:var(--accent-yellow)}
+.sc-info{flex:1;min-width:0}.sc-name{font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-sub{font-size:.72rem;color:var(--text-secondary);margin-top:1px}
+.sc-badge{padding:3px 9px;border-radius:10px;font-size:.62rem;font-weight:700;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.sc-badge.be{background:rgba(16,185,129,.2);color:var(--accent-green)}.sc-badge.bs{background:rgba(6,182,212,.2);color:var(--accent-cyan)}.sc-badge.bm{background:rgba(245,158,11,.2);color:var(--accent-yellow)}
+/* metric pills */
+.sc-met-pills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.met-pill{padding:2px 7px;border-radius:8px;font-size:.62rem;font-weight:700}
+.mp-ok{background:rgba(16,185,129,.2);color:var(--accent-green);border:1px solid rgba(16,185,129,.3)}
+.mp-no{background:rgba(239,68,68,.2);color:var(--accent-red);border:1px solid rgba(239,68,68,.3)}
+.mp-warn{background:rgba(245,158,11,.2);color:var(--accent-yellow);border:1px solid rgba(245,158,11,.3)}
+.mp-nh{font-weight:700}
+/* section labels inside card */
+.sc-section-label{font-size:.67rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.7px;margin:10px 0 6px}
+/* KPI mini row */
+.sc-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px}
+.sc-kpi{background:var(--bg-glass);border-radius:6px;padding:6px 3px;text-align:center}
+.sc-kv{font-size:.78rem;font-weight:700}
+.sc-kv.green{color:var(--accent-green)}.sc-kv.yellow{color:var(--accent-yellow)}.sc-kv.red{color:var(--accent-red)}
+.sc-kl{font-size:.58rem;color:var(--text-muted);margin-top:1px}
+/* sparkline */
+.sc-spark{display:flex;align-items:flex-end;gap:3px;height:36px;margin-bottom:10px;padding:0 2px}
+.sbar{flex:1;border-radius:2px 2px 0 0;transition:height .4s ease}
+.sbar-g{background:var(--accent-green)}.sbar-y{background:var(--accent-yellow)}.sbar-r{background:var(--accent-red)}
+/* QoS horizontal bars */
+.qbar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.qbar-label{font-size:.67rem;font-weight:700;color:var(--text-muted);width:30px;text-align:right;flex-shrink:0}
+.qbar-track{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden}
+.qbar-fill{height:100%;border-radius:8px;display:flex;align-items:center;padding-left:6px;min-width:28px;transition:width .6s ease}
+.qbar-val{font-size:.62rem;font-weight:700;color:#fff;white-space:nowrap}
+.qbar-target{font-size:.6rem;color:var(--text-muted);width:36px;flex-shrink:0}
+/* NH display */
+.nh-display{padding:7px 10px;border-radius:7px;font-size:.75rem;font-weight:600;margin-bottom:10px}
+.nh-ok{background:rgba(16,185,129,.12);color:var(--accent-green);border:1px solid rgba(16,185,129,.25)}
+.nh-warn{background:rgba(245,158,11,.12);color:var(--accent-yellow);border:1px solid rgba(245,158,11,.25)}
+.nh-bad{background:rgba(239,68,68,.12);color:var(--accent-red);border:1px solid rgba(239,68,68,.25)}
+/* badges & insight */
+.sc-badges{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.mb{padding:3px 7px;border-radius:9px;font-size:.58rem;font-weight:600;background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary)}
+.mb.gold{background:rgba(255,215,0,.15);border-color:rgba(255,215,0,.3);color:var(--gold)}
+.mb.green{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:var(--accent-green)}
+.mb.cyan{background:rgba(6,182,212,.15);border-color:rgba(6,182,212,.3);color:var(--accent-cyan)}
+.mb.purple{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.3);color:var(--accent-purple)}
+.sc-insight{background:var(--bg-glass);border-radius:7px;padding:9px;border-left:3px solid var(--accent-purple)}
+.sc-insight-hd{font-size:.67rem;color:var(--accent-purple);font-weight:700;margin-bottom:3px}
+.sc-insight{font-size:.73rem;color:var(--text-secondary);line-height:1.45}
+/* ── Trends ── */
+.trend-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:20px}
+.t-card{padding:22px}
+.t-title{display:flex;align-items:center;gap:8px;font-size:.95rem;font-weight:700;margin-bottom:22px;padding-bottom:9px;border-bottom:1px solid var(--border-glass)}
+.tchart{display:flex;align-items:flex-end;gap:14px;height:150px;padding:0 6px}
+.tbc{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%}
+.tbv{font-size:.72rem;font-weight:700;padding:3px 6px;background:rgba(0,0,0,.3);border-radius:5px;white-space:nowrap}
+.tbw{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.tb{width:100%;max-width:46px;border-radius:5px 5px 0 0;transition:height .3s}
+.tg{background:linear-gradient(180deg,var(--accent-green),#059669)}.ty{background:linear-gradient(180deg,var(--accent-yellow),var(--accent-orange))}
+.tbl{font-size:.72rem;color:var(--text-muted);font-weight:600}
+.t-legend{display:flex;justify-content:center;gap:18px;margin-top:14px;flex-wrap:wrap}
+.tleg{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--text-secondary)}
+.tld{width:9px;height:9px;border-radius:50%}
+.tld.g{background:var(--accent-green)}.tld.y{background:var(--accent-yellow)}
+/* ── Recognition ── */
+.rec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:20px}
+.rec-card{padding:18px}
+.rec-title{display:flex;align-items:center;gap:7px;font-size:.87rem;font-weight:700;margin-bottom:14px}
+.ri{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--bg-glass);border-radius:7px;font-size:.83rem;margin-bottom:6px}
+.ril{display:flex;align-items:center;gap:9px}
+.ra{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.63rem;font-weight:700}
+.ra.green{background:linear-gradient(135deg,var(--accent-green),#059669);color:#fff}
+.ra.cyan{background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));color:#fff}
+.ra.gold{background:linear-gradient(135deg,var(--gold),var(--accent-orange));color:var(--bg-primary)}
+.rv{font-weight:700;font-size:.78rem}
+.rv.green{color:var(--accent-green)}.rv.cyan{color:var(--accent-cyan)}.rv.gold{color:var(--gold)}
+/* ── Actions ── */
+.act-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:20px}
+.act-card{padding:18px;border-top:3px solid}
+.act-card.ac-g{border-top-color:var(--accent-green)}.act-card.ac-y{border-top-color:var(--accent-yellow)}.act-card.ac-c{border-top-color:var(--accent-cyan)}.act-card.ac-p{border-top-color:var(--accent-purple)}
+.act-title{display:flex;align-items:center;gap:7px;font-size:.88rem;font-weight:700;margin-bottom:14px}
+.act-list{display:flex;flex-direction:column;gap:9px}
+.act-item{display:flex;align-items:flex-start;gap:9px;font-size:.83rem;color:var(--text-secondary);line-height:1.5}
+.ab2{margin-top:2px;font-size:.85rem}
+.ab2.g{color:var(--accent-green)}.ab2.y{color:var(--accent-yellow)}.ab2.c{color:var(--accent-cyan)}.ab2.p{color:var(--accent-purple)}
+/* ── Summary ── */
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.sum-card{padding:22px}
+.sum-title{display:flex;align-items:center;gap:8px;font-size:.95rem;font-weight:700;margin-bottom:18px}
+.sum-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.ss{text-align:center;padding:14px;background:var(--bg-glass);border-radius:10px}
+.ssv{font-size:2.2rem;font-weight:800}
+.ssv.g{color:var(--accent-green)}.ssv.c{color:var(--accent-cyan)}.ssv.y{color:var(--accent-yellow)}
+.ssl{font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-top:3px}
+.sum-detail{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.sdi{display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg-glass);border-radius:7px}
+.sdl{font-size:.83rem;color:var(--text-secondary)}.sdv{font-size:.9rem;font-weight:700}
+.sdv.g{color:var(--accent-green)}.sdv.r{color:var(--accent-red)}
+/* poll */
+.poll-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.ps{text-align:center;padding:14px;background:var(--bg-glass);border-radius:10px}
+.psv{font-size:1.8rem;font-weight:800}
+.psv.p{color:var(--accent-purple)}.psv.g{color:var(--accent-green)}.psv.r{color:var(--accent-red)}
+.psl{font-size:.7rem;color:var(--text-secondary);text-transform:uppercase;margin-top:3px}
+.pbar-wrap{margin-bottom:16px}
+.pbar{height:28px;border-radius:14px;overflow:hidden;display:flex}
+.pbh{background:linear-gradient(90deg,var(--accent-green),#059669);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:#fff}
+.pbn{background:linear-gradient(90deg,var(--accent-red),#dc2626);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:#fff}
+.pleg{display:flex;justify-content:center;gap:24px;margin-top:10px}
+/* Reference */
+.ref-card{padding:22px;margin-bottom:20px}
+.ref-title{display:flex;align-items:center;gap:8px;font-size:.95rem;font-weight:700;margin-bottom:18px}
+.ref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.ref-item{padding:18px;border-radius:11px;text-align:center}
+.ref-item.re{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)}
+.ref-item.rs{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.25)}
+.ref-item.rm{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25)}
+.ref-badge{font-size:.88rem;font-weight:700;margin-bottom:10px}
+.ref-badge.rbe{color:var(--accent-green)}.ref-badge.rbs{color:var(--accent-cyan)}.ref-badge.rbm{color:var(--accent-yellow)}
+.ref-desc{font-size:.78rem;color:var(--text-secondary);line-height:1.6}
+.ref-footer{display:flex;justify-content:center;gap:30px;padding-top:14px;border-top:1px solid var(--border-glass);flex-wrap:wrap}
+.rfi{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-secondary)}
+/* nhb */
+.nhb{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;font-size:.78rem;font-weight:600}
+.nhb.perfect{background:rgba(16,185,129,.2);color:var(--accent-green)}
+.nhb.minor{background:rgba(245,158,11,.2);color:var(--accent-yellow)}
+.nhb.concern{background:rgba(239,68,68,.2);color:var(--accent-red)}
+/* Footer */
+.footer{text-align:center;padding:26px;background:var(--bg-card);border-radius:14px;border:1px solid var(--border-glass);margin-top:20px}
+.ft{font-size:1.1rem;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.fs{font-size:.82rem;color:var(--text-secondary);margin-bottom:14px}
+/* Responsive */
+@media(max-width:1400px){.spot-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1200px){.pulse-grid,.champ-grid,.kpi-grid{grid-template-columns:repeat(2,1fr)}.spot-grid{grid-template-columns:repeat(2,1fr)}.rec-grid,.act-grid{grid-template-columns:repeat(2,1fr)}.trend-grid{grid-template-columns:1fr}}
+@media(max-width:768px){.kpi-grid,.spot-grid,.rec-grid,.act-grid,.sum-grid,.ref-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-l">
+      <div class="logo">⚡</div>
+      <div class="hdr-title"><h1>Andon Performance Hub</h1><p>6-Metric Analytics Dashboard</p></div>
+    </div>
+    <div class="hdr-r">
+      <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+      <div class="wk-badge">Week ${weekNum} · ${weekYear}</div>
+    </div>
+  </header>
+
+  <!-- TEAM PULSE -->
+  <div class="pulse-grid">
+    <div class="card health-card">
+      <div class="hc-title">❤️ Team Health Score</div>
+      <div class="gauge-c">
+        <svg class="gauge-svg" viewBox="0 0 150 150">
+          <defs><linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#06b6d4"/><stop offset="50%" stop-color="#10b981"/><stop offset="100%" stop-color="#22c55e"/></linearGradient></defs>
+          <circle class="g-bg" cx="75" cy="75" r="65"/>
+          <circle class="g-fill" id="gFill" cx="75" cy="75" r="65"/>
+        </svg>
+        <div class="gauge-ctr"><div class="g-val" id="gVal">0</div><div class="g-lbl">/ 100</div></div>
+      </div>
+    </div>
+    <div class="card qs-card">
+      <div class="qs-title">📊 Quick Stats — Week ${weekNum}</div>
+      <div class="qs-grid">
+        <div class="qs-item"><div class="qs-val ex">${excList.length}</div><div class="qs-lbl">★ Excellent</div></div>
+        <div class="qs-item"><div class="qs-val st">${strList.length}</div><div class="qs-lbl">● Strong</div></div>
+        <div class="qs-item"><div class="qs-val mo">${monList.length}</div><div class="qs-lbl">● Monitor</div></div>
+        <div class="qs-item"><div class="qs-val ar">${advisors.length}</div><div class="qs-lbl">Total Active</div></div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-mini"><div class="km-val g">${fP(teamASR)}</div><div class="km-lbl">Team ASR</div></div>
+        <div class="kpi-mini"><div class="km-val c">${fN(teamART)} min</div><div class="km-lbl">Team ART</div></div>
+        <div class="kpi-mini"><div class="km-val y">${fP(teamOA)}</div><div class="km-lbl">Team OA%</div></div>
+        <div class="kpi-mini"><div class="km-val p">${totalPolls}</div><div class="km-lbl">Poll Cases</div></div>
+      </div>
+    </div>
+    <div class="card hl-card">
+      <div class="hl-title">🔔 Highlights</div>
+      <div class="hl-item gold">🏆 ${champ.login} — Champion of Week ${weekNum}! ${fP(champ.clf.asrV)} ASR · ${fN(champ.clf.artV)} ART · ${champ.clf.met}/6 metrics</div>
+      <div class="hl-item ${teamASR>=targets.tASR?'green':'yellow'}">${teamASR>=targets.tASR?'⭐':'⚠️'} Team ASR ${fP(teamASR)} ${asrChgStr} vs ${prevWeekLabel}</div>
+      <div class="hl-item ${teamART<targets.tART?'green':'yellow'}">${teamART<targets.tART?'⚡':'⚠️'} Team ART ${fN(teamART)} min · Target &lt;${targets.tART} min</div>
+      <div class="hl-item cyan">✅ ${perfASR.length}/${advisors.length} advisors achieved 100% W${weekNum} ASR</div>
+      <div class="hl-item blue">📋 ${zeroNH.length} advisors with Zero NH this week</div>
+    </div>
+  </div>
+
+  <!-- CHAMPION + PODIUM -->
+  <div class="champ-grid">
+    <div class="champ-card card">
+      <div class="ch-head">
+        <div class="ch-av"><span class="ch-crown">👑</span>${ini(champ.login)}</div>
+        <div class="ch-info"><h3>${champ.login}</h3><div class="ch-sub">🏆 Champion of the Week — ${champ.clf.met}/6 Metrics Met</div></div>
+      </div>
+      <div class="ch-stats">
+        <div class="ch-stat"><div class="ch-stat-val">${champ.w13asr||'N/A'}</div><div class="ch-stat-lbl">W${weekNum} ASR</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${champ.art?(champ.art.w13art||'N/A'):'N/A'}</div><div class="ch-stat-lbl">W${weekNum} ART</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${champ.qos?(champ.qos.oa||'N/A'):'N/A'}</div><div class="ch-stat-lbl">L4W OA%</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${champ.qos?(champ.qos.ir||'N/A'):'N/A'}</div><div class="ch-stat-lbl">L4W IR%</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${champ.qos?(champ.qos.fcp||'N/A'):'N/A'}</div><div class="ch-stat-lbl">L4W FCP%</div></div>
+        <div class="ch-stat"><div class="ch-stat-val">${champ.qos?(champ.qos.aa||'N/A'):'N/A'}</div><div class="ch-stat-lbl">L4W AA%</div></div>
+      </div>
+      <div class="ch-badges">
+        <span class="ch-badge">🥇 #1 Rank</span>
+        ${champ.clf.met===6?'<span class="ch-badge">🔥 All 6 Metrics</span>':''}
+        ${champ.clf.artV&&champ.clf.artV<targets.tART?'<span class="ch-badge">⚡ Fast ART</span>':''}
+        ${pct(champ.w13asr)===100?'<span class="ch-badge">✨ Perfect ASR</span>':''}
+        ${!champ.w13nh||parseInt(champ.w13nh)===0?'<span class="ch-badge">💚 Zero NH</span>':''}
+      </div>
+    </div>
+    <div class="card podium-card">
+      <div class="pod-title"><span>🏅</span> Top 3 Podium</div>
+      <div class="pod-c">
+        <div class="pod-place">
+          <div class="pod-av s">${rank2?ini(rank2.login):'--'}</div>
+          <div class="pod-name">${rank2?rank2.login:'--'}</div>
+          <div class="pod-stats">ASR: ${rank2?(rank2.w13asr||'N/A'):'—'}<br>ART: ${rank2&&rank2.art?(rank2.art.w13art||'N/A'):'—'}<br>${rank2?rank2.clf.met:0}/6 metrics</div>
+          <div class="pod-stand s">2</div>
+        </div>
+        <div class="pod-place">
+          <div class="pod-av f">${ini(champ.login)}</div>
+          <div class="pod-name">${champ.login}</div>
+          <div class="pod-stats">ASR: ${champ.w13asr||'N/A'}<br>ART: ${champ.art?(champ.art.w13art||'N/A'):'—'}<br>${champ.clf.met}/6 metrics</div>
+          <div class="pod-stand f">1</div>
+        </div>
+        <div class="pod-place">
+          <div class="pod-av t">${rank3?ini(rank3.login):'--'}</div>
+          <div class="pod-name">${rank3?rank3.login:'--'}</div>
+          <div class="pod-stats">ASR: ${rank3?(rank3.w13asr||'N/A'):'—'}<br>ART: ${rank3&&rank3.art?(rank3.art.w13art||'N/A'):'—'}<br>${rank3?rank3.clf.met:0}/6 metrics</div>
+          <div class="pod-stand t">3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="card kpi-card kc-c">
+      <div class="kpi-icon">⏱️</div><div class="kpi-title">Team ART (W${weekNum})</div>
+      <div class="kpi-val ${teamART<targets.tART?'g':'y'}">${fN(teamART)}</div>
+      <div class="kpi-chg ${artChg<=0?'up':'down'}"><span>${artChg<=0?'▼':'▲'}</span>${artChgStr} vs ${prevWeekLabel}</div>
+      <div class="kpi-target">Target: &lt;${targets.tART} min</div>
+    </div>
+    <div class="card kpi-card kc-g">
+      <div class="kpi-icon">📊</div><div class="kpi-title">Team ASR (W${weekNum})</div>
+      <div class="kpi-val ${teamASR>=targets.tASR?'g':'y'}">${fP(teamASR)}</div>
+      <div class="kpi-chg ${asrChg>=0?'up':'down'}"><span>${asrChg>=0?'▲':'▼'}</span>${asrChgStr} vs ${prevWeekLabel}</div>
+      <div class="kpi-target">Target: ≥${targets.tASR}%</div>
+    </div>
+    <div class="card kpi-card kc-p">
+      <div class="kpi-icon">📋</div><div class="kpi-title">Team FCP (L4W)</div>
+      <div class="kpi-val ${teamFCP>=targets.tFCP?'p':'y'}">${fP(teamFCP)}</div>
+      <div class="kpi-chg neu"><span>📊</span>Followed Correct Process</div>
+      <div class="kpi-target">Target: ≥${targets.tFCP}%</div>
+    </div>
+    <div class="card kpi-card kc-y">
+      <div class="kpi-icon">✅</div><div class="kpi-title">Team OA (L4W)</div>
+      <div class="kpi-val ${teamOA>=targets.tOA?'g':'y'}">${fP(teamOA)}</div>
+      <div class="kpi-chg neu"><span>📊</span>Outcome Accuracy</div>
+      <div class="kpi-target">Target: ≥${targets.tOA}%</div>
+    </div>
+    <div class="card kpi-card kc-o">
+      <div class="kpi-icon">🔍</div><div class="kpi-title">Team IR (L4W)</div>
+      <div class="kpi-val ${teamIR>=targets.tIR?'g':'y'}">${fP(teamIR)}</div>
+      <div class="kpi-chg neu"><span>📊</span>Issue Resolution</div>
+      <div class="kpi-target">Target: ≥${targets.tIR}%</div>
+    </div>
+    <div class="card kpi-card kc-pk">
+      <div class="kpi-icon">🎯</div><div class="kpi-title">Team AA (L4W)</div>
+      <div class="kpi-val ${teamAA>=targets.tAA?'pk':'y'}">${fP(teamAA)}</div>
+      <div class="kpi-chg neu"><span>📊</span>Andon Accuracy</div>
+      <div class="kpi-target">Target: ≥${targets.tAA}%</div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="section">
+    <div class="card lb-card">
+      <div class="lb-head">
+        <div class="lb-title"><span>🏆</span>Performance Leaderboard — Week ${weekNum}</div>
+        <div class="ftabs">
+          <button class="ftab active" data-f="all">All (${advisors.length})</button>
+          <button class="ftab" data-f="excellent">★ Excellent (${excList.length})</button>
+          <button class="ftab" data-f="strong">● Strong (${strList.length})</button>
+          <button class="ftab" data-f="monitor">● Monitor (${monList.length})</button>
+        </div>
+      </div>
+      <div class="lb-table">
+        <div class="lb-hdr">
+          <div>Rank</div><div>Advisor</div>
+          <div>ART (W${weekNum})</div><div>ASR (W${weekNum})</div>
+          <div>FCP (L4W)</div><div>OA (L4W)</div><div>IR (L4W)</div><div>AA (L4W)</div>
+          <div>Trend</div><div>Status</div>
+        </div>
+        ${lbRows}
+      </div>
+    </div>
+  </div>
+
+  <!-- INDIVIDUAL SPOTLIGHT -->
+  <div class="section">
+    <div class="spot-title"><span>👤</span>Individual Advisor Spotlight — Week ${weekNum}</div>
+    <div class="spot-grid">${spotCards}</div>
+  </div>
+
+  <!-- TRENDS -->
+  <div class="trend-grid">
+    <div class="card t-card">
+      <div class="t-title"><span>📊</span>Team ASR Trend (L4W)</div>
+      <div class="tchart">
+        ${asrBar(w10TASR,wN-3)}${asrBar(w11TASR,wN-2)}${asrBar(w12TASR,wN-1)}${asrBar(teamASR,wN)}
+      </div>
+      <div class="t-legend"><div class="tleg"><div class="tld g"></div>≥${targets.tASR}%</div><div class="tleg"><div class="tld y"></div>&lt;${targets.tASR}%</div></div>
+    </div>
+    <div class="card t-card">
+      <div class="t-title"><span>⏱️</span>Team ART Trend (L4W)</div>
+      <div class="tchart">
+        ${artBar(w10TART,wN-3)}${artBar(w11TART,wN-2)}${artBar(w12TART,wN-1)}${artBar(teamART,wN)}
+      </div>
+      <div class="t-legend"><div class="tleg"><div class="tld g"></div>&lt;${targets.tART} min</div><div class="tleg"><div class="tld y"></div>≥${targets.tART} min</div></div>
+    </div>
+  </div>
+
+  <!-- RECOGNITION -->
+  <div class="rec-grid">
+    <div class="card rec-card"><div class="rec-title">🏆 Perfect W${weekNum} ASR</div><div>${perfASRRows||'<div class="ri">No data</div>'}</div></div>
+    <div class="card rec-card"><div class="rec-title">⚡ Top 5 Fastest ART</div><div>${top5ARTrows||'<div class="ri">No data</div>'}</div></div>
+    <div class="card rec-card"><div class="rec-title">💎 Top 5 OA% (L4W)</div><div>${top5OArows||'<div class="ri">No data</div>'}</div></div>
+    <div class="card rec-card"><div class="rec-title">💚 Zero NH (W${weekNum})</div><div>${zeroNHrows||'<div class="ri">No data</div>'}</div></div>
+  </div>
+
+  <!-- ACTION ITEMS -->
+  <div class="act-grid">
+    <div class="card act-card ac-g">
+      <div class="act-title"><span>🎉</span>Celebrate</div>
+      <div class="act-list">
+        <div class="act-item"><span class="ab2 g">●</span><span>Champion: ${champ.login} — ${champ.clf.met}/6 metrics, ${fP(champ.clf.asrV)} ASR, ${fN(champ.clf.artV)} ART</span></div>
+        <div class="act-item"><span class="ab2 g">●</span><span>${excList.length} advisors achieved EXCELLENT (all 6 metrics)</span></div>
+        <div class="act-item"><span class="ab2 g">●</span><span>${perfASR.length} advisors with 100% ASR this week</span></div>
+        <div class="act-item"><span class="ab2 g">●</span><span>${zeroNH.length} advisors maintained zero NH polls</span></div>
+        <div class="act-item"><span class="ab2 g">●</span><span>Team ASR at ${fP(teamASR)} (${asrChgStr} vs ${prevWeekLabel})</span></div>
+      </div>
+    </div>
+    <div class="card act-card ac-y">
+      <div class="act-title"><span>📚</span>Training Focus</div>
+      <div class="act-list">
+        ${highART.length?`<div class="act-item"><span class="ab2 y">●</span><span>High ART coaching: ${highART.map(a=>`${a.login} (${a.art.w13art}min)`).join(', ')}</span></div>`:''}
+        ${lowQoS.length?`<div class="act-item"><span class="ab2 y">●</span><span>QoS coaching: ${lowQoS.map(a=>`${a.login} (${a.qos.total})`).join(', ')}</span></div>`:''}
+        ${topNH.length?`<div class="act-item"><span class="ab2 y">●</span><span>NH case review: ${topNH.map(a=>`${a.login} (${a.w13nh} NH)`).join(', ')}</span></div>`:''}
+        <div class="act-item"><span class="ab2 y">●</span><span>${monList.length} advisors in Monitor — schedule 1:1 coaching sessions</span></div>
+        <div class="act-item"><span class="ab2 y">●</span><span>Focus on FCP — team avg ${fP(teamFCP)} vs ${targets.tFCP}% target</span></div>
+      </div>
+    </div>
+    <div class="card act-card ac-c">
+      <div class="act-title"><span>📈</span>Improvement</div>
+      <div class="act-list">
+        <div class="act-item"><span class="ab2 c">●</span><span>Review ${teamNH} NH cases — identify root cause patterns</span></div>
+        <div class="act-item"><span class="ab2 c">●</span><span>ART target ${targets.tART} min — team at ${fN(teamART)}: ${teamART<targets.tART?'Target met!':'Needs improvement'}</span></div>
+        <div class="act-item"><span class="ab2 c">●</span><span>AA% at ${fP(teamAA)} — Andon Accuracy needs focus across team</span></div>
+        <div class="act-item"><span class="ab2 c">●</span><span>Peer mentoring: pair Excellent advisors with Monitor advisors</span></div>
+      </div>
+    </div>
+    <div class="card act-card ac-p">
+      <div class="act-title"><span>🎯</span>Next Week Goals</div>
+      <div class="act-list">
+        <div class="act-item"><span class="ab2 p">●</span><span>Increase Excellent: ${excList.length} → ${excList.length+Math.ceil(monList.length*0.4)}+ advisors</span></div>
+        <div class="act-item"><span class="ab2 p">●</span><span>Reduce Monitor: ${monList.length} → ≤${Math.max(0,monList.length-3)}</span></div>
+        <div class="act-item"><span class="ab2 p">●</span><span>Team ART below ${targets.tART} min (current: ${fN(teamART)})</span></div>
+        <div class="act-item"><span class="ab2 p">●</span><span>Reduce NH from ${teamNH} to ≤${Math.max(0,Math.round(teamNH*0.5))}</span></div>
+        <div class="act-item"><span class="ab2 p">●</span><span>Improve FCP from ${fP(teamFCP)} to ≥${targets.tFCP}%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="sum-grid">
+    <div class="card sum-card">
+      <div class="sum-title"><span>📊</span>Performance Summary — Week ${weekNum}</div>
+      <div class="sum-stats">
+        <div class="ss"><div class="ssv g">${excList.length}</div><div class="ssl">★ Excellent</div></div>
+        <div class="ss"><div class="ssv c">${strList.length}</div><div class="ssl">● Strong</div></div>
+        <div class="ss"><div class="ssv y">${monList.length}</div><div class="ssl">● Monitor</div></div>
+      </div>
+      <div class="sum-detail">
+        <div class="sdi"><span class="sdl">Health Score</span><span class="sdv g">${healthScore}</span></div>
+        <div class="sdi"><span class="sdl">Active Advisors</span><span class="sdv">${advisors.length}</span></div>
+        <div class="sdi"><span class="sdl">100% ASR (W${weekNum})</span><span class="sdv g">${perfASR.length}</span></div>
+        <div class="sdi"><span class="sdl">Zero NH (W${weekNum})</span><span class="sdv g">${zeroNH.length}</span></div>
+        <div class="sdi"><span class="sdl">Below QoS Target</span><span class="sdv r">${belowOA.length}</span></div>
+        <div class="sdi"><span class="sdl">ART Above Target</span><span class="sdv r">${advisors.filter(a=>a.art&&num(a.art.w13art)>=targets.tART).length}</span></div>
+      </div>
+    </div>
+    <div class="card sum-card">
+      <div class="sum-title"><span>📋</span>Poll Distribution — Week ${weekNum}</div>
+      <div class="poll-stats">
+        <div class="ps"><div class="psv p">${totalPolls}</div><div class="psl">Total Polls</div></div>
+        <div class="ps"><div class="psv g">${teamHelp}</div><div class="psl">Helpful</div></div>
+        <div class="ps"><div class="psv r">${teamNH}</div><div class="psl">Not Helpful</div></div>
+      </div>
+      <div class="pbar-wrap">
+        <div class="pbar">
+          <div class="pbh" style="width:${totalPolls>0?((teamHelp/totalPolls)*100).toFixed(1):0}%">${teamHelp} (${totalPolls>0?((teamHelp/totalPolls)*100).toFixed(1):0}%)</div>
+          <div class="pbn" style="width:${totalPolls>0?((teamNH/totalPolls)*100).toFixed(1):0}%">${teamNH>0?teamNH:''}</div>
+        </div>
+        <div class="pleg">
+          <div class="tleg"><div class="tld g"></div>Helpful: ${teamHelp}</div>
+          <div class="tleg"><div class="tld" style="background:var(--accent-red)"></div>Not Helpful: ${teamNH}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REFERENCE -->
+  <div class="card ref-card">
+    <div class="ref-title"><span>📖</span>Quick Reference Guide — Status Classification</div>
+    <div class="ref-grid">
+      <div class="ref-item re"><div class="ref-badge rbe">★ EXCELLENT</div><div class="ref-desc">All 6 metrics meet targets:<br>ASR ≥${targets.tASR}% · ART &lt;${targets.tART}min<br>FCP ≥${targets.tFCP}% · OA ≥${targets.tOA}%<br>IR ≥${targets.tIR}% · AA ≥${targets.tAA}%</div></div>
+      <div class="ref-item rs"><div class="ref-badge rbs">● STRONG</div><div class="ref-desc">4–5 out of 6 metrics meet targets<br>Good performance, minor gaps<br>1–2 metrics need attention</div></div>
+      <div class="ref-item rm"><div class="ref-badge rbm">● MONITOR</div><div class="ref-desc">3 or fewer metrics meet targets<br>Needs coaching and support<br>1:1 coaching sessions required</div></div>
+    </div>
+    <div class="ref-footer">
+      <div class="rfi"><span>⏱️</span>ART: &lt;${targets.tART} min</div>
+      <div class="rfi"><span>📊</span>ASR: ≥${targets.tASR}%</div>
+      <div class="rfi"><span>📋</span>FCP: ≥${targets.tFCP}%</div>
+      <div class="rfi"><span>✅</span>OA: ≥${targets.tOA}%</div>
+      <div class="rfi"><span>🔍</span>IR: ≥${targets.tIR}%</div>
+      <div class="rfi"><span>🎯</span>AA: ≥${targets.tAA}%</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="ft">Andon Performance Hub | Week ${weekNum} · ${weekYear}</div>
+    <div class="fs">${advisors.length} Active Advisors · 6-Metric Classification · Generated by Andon Dashboard Generator v3</div>
+    <div class="fs">EXCELLENT = All 6 | STRONG = 4–5 | MONITOR = ≤3 metrics met</div>
+  </footer>
+
+</div><!-- /dash -->
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  // Gauge animation
+  var gv=document.getElementById('gVal'),tv=${healthScore},st=performance.now(),dur=2000;
+  setTimeout(function(){document.getElementById('gFill').classList.add('anim')},200);
+  function uc(t){var el=t-st,pr=Math.min(el/dur,1),eq=1-Math.pow(1-pr,4);gv.textContent=Math.floor(eq*tv);if(pr<1)requestAnimationFrame(uc);else gv.textContent=tv}
+  setTimeout(function(){requestAnimationFrame(uc)},300);
+  // Filter tabs
+  document.querySelectorAll('.ftab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.ftab').forEach(function(x){x.classList.remove('active')});
+      this.classList.add('active');var f=this.dataset.f;
+      document.querySelectorAll('.lb-row').forEach(function(r){r.style.display=f==='all'||r.dataset.status===f?'':'none'});
+    });
+  });
+  // Scroll animation
+  var ob=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}})},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.card,.spot-card').forEach(function(c){c.style.opacity='0';c.style.transform='translateY(16px)';c.style.transition='opacity .5s ease,transform .5s ease';ob.observe(c)});
+  // Row click highlight
+  document.querySelectorAll('.lb-row').forEach(function(r){
+    r.addEventListener('click',function(){document.querySelectorAll('.lb-row').forEach(function(x){x.style.background=''});this.style.background='rgba(255,255,255,.04)'});
+  });
+});
+<\/script>
+</body>
+</html>`;
+
+  setP(100,'Done!'); await delay(200);
+
+  document.getElementById('outSection').style.display='block';
+  document.getElementById('outAlert').innerHTML=`<div class="alert alert-ok">✅ Week ${weekNum} dashboard generated! ${advisors.length} advisors · ${excList.length} Excellent · ${strList.length} Strong · ${monList.length} Monitor</div>`;
+  document.getElementById('prevInfo').innerHTML=`
+    <div class="pv"><div class="pv-val g">${excList.length}</div><div class="pv-lbl">Excellent</div></div>
+    <div class="pv"><div class="pv-val c">${strList.length}</div><div class="pv-lbl">Strong</div></div>
+    <div class="pv"><div class="pv-val y">${monList.length}</div><div class="pv-lbl">Monitor</div></div>
+    <div class="pv"><div class="pv-val p">${healthScore}</div><div class="pv-lbl">Health Score</div></div>`;
+  document.getElementById('codeBox').textContent=finalHTML.slice(0,1000)+'\n… ('+finalHTML.length.toLocaleString()+' chars total)';
+  document.getElementById('outSection').scrollIntoView({behavior:'smooth'});
+}
+
+function download(){
+  const wk=document.getElementById('weekNum').value;
+  const yr=document.getElementById('weekYear').value;
+  const b=new Blob([finalHTML],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=`andon_dashboard_wk${wk}_${yr}.html`;a.click();
+}
+function copyCode(){
+  navigator.clipboard.writeText(finalHTML).then(()=>{
+    const b=document.querySelector('.copy-top');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',2000);
+  });
+}
+</script>
+</body>
+</html>
